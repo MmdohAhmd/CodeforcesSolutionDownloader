@@ -3,9 +3,9 @@ import json
 import time, os
 
 MAX_SUBS = 1000000
-MAX_CF_CONTEST_ID = 600
+MAX_CF_CONTEST_ID = 700
 MAGIC_START_POINT = 17000
-
+cnt=1
 handle='tacklemore'
 
 SOURCE_CODE_BEGIN = '<pre class="prettyprint program-source" style="padding: 0.5em;">'
@@ -15,9 +15,9 @@ USER_INFO_URL = 'http://codeforces.com/api/user.status?handle={handle}&from=1&co
 EXT = {'C++': 'cpp', 'C': 'c', 'Java': 'java', 'Python': 'py', 'Delphi': 'dpr', 'FPC': 'pas', 'C#': 'cs'}
 EXT_keys = EXT.keys()
 
-replacer = {'&quot;': '\"', '&gt;': '>', '&lt;': '<', '&amp;': '&', "&apos;": "'"}
+replacer = {'&quot;': '\"', '&gt;': '>', '&lt;': '<', '&amp;': '&', "&apos;": "'", "&#39;": "'"}
 keys = replacer.keys()
-
+illegal = {'|','\\','/','?','*','\"',':','<','>'}
 def get_ext(comp_lang):
     if 'C++' in comp_lang:
         return 'cpp'
@@ -25,6 +25,11 @@ def get_ext(comp_lang):
         if key in comp_lang:
             return EXT[key]
     return ""
+
+def clean_name(string):
+    for ch in illegal:
+        string = string.replace(ch,'_')
+    return string;
 
 def parse(source_code):
     for key in keys:
@@ -45,22 +50,32 @@ start_time = time.time()
 
 for submission in submissions:
     if submission['verdict'] == u'OK' and submission['contestId'] < MAX_CF_CONTEST_ID:
-        con_id, sub_id = submission['contestId'], submission['id'],
-        prob_name, prob_id = submission['problem']['name'], submission['problem']['index']
-        comp_lang = submission['programmingLanguage']
-        submission_info = urllib.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)).read()
-        
-        start_pos = submission_info.find(SOURCE_CODE_BEGIN, MAGIC_START_POINT) + len(SOURCE_CODE_BEGIN)
-        end_pos = submission_info.find("</pre>", start_pos)
-        result = parse(submission_info[start_pos:end_pos]).replace('\r', '')
-        ext = get_ext(comp_lang)
-        
-        new_directory = handle + '/' + str(con_id)
-        if not os.path.exists(new_directory):
-            os.makedirs(new_directory)
-        file = open(new_directory + '/' + prob_id + '[ ' + prob_name + ' ]' + '.' + ext, 'w')
-	file.write(result)
-	file.close()		
+        while submission['verdict'] == u'OK' and submission['contestId'] < MAX_CF_CONTEST_ID:
+            try:
+                con_id, sub_id = submission['contestId'], submission['id'],
+                prob_name, prob_id = submission['problem']['name'], submission['problem']['index']
+                comp_lang = submission['programmingLanguage']
+                submission_info = urllib.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)).read()
+                
+                start_pos = submission_info.find(SOURCE_CODE_BEGIN, MAGIC_START_POINT) + len(SOURCE_CODE_BEGIN)
+                end_pos = submission_info.find("</pre>", start_pos)
+                result = parse(submission_info[start_pos:end_pos]).replace('\r', '')
+                ext = get_ext(comp_lang)
+                
+                new_directory = handle + '/' + str(con_id)
+                if not os.path.exists(new_directory):
+                    os.makedirs(new_directory)
+                #print str(cnt)
+                print str(con_id) + str(prob_id) + " " + prob_name + " "
+                cnt = cnt + 1
+                file = open(new_directory + '/' + prob_id + ' [ ' + clean_name(prob_name) + ' ]' + '.' + ext, 'w')
+                file.write(result)
+                file.close()
+                break
+            except:
+                print "Exception: probably connection failure"
+    else :
+        print "Failed submission"
 end_time = time.time()
-
+print 'Downloaded %d submissions' % cnt
 print 'Execution time %d seconds' % int(end_time - start_time)
