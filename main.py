@@ -3,10 +3,10 @@ import json
 import time, os
 
 MAX_SUBS = 1000000
-MAX_CF_CONTEST_ID = 700
+MAX_CF_CONTEST_ID = 900
 MAGIC_START_POINT = 17000
 cnt=1
-handle='tacklemore'
+handle='sherbi7y'
 
 SOURCE_CODE_BEGIN = '<pre class="prettyprint program-source" style="padding: 0.5em;">'
 SUBMISSION_URL = 'http://codeforces.com/contest/{ContestId}/submission/{SubmissionId}'
@@ -56,7 +56,6 @@ for submission in submissions:
                 prob_name, prob_id = submission['problem']['name'], submission['problem']['index']
                 comp_lang = submission['programmingLanguage']
                 submission_info = urllib.urlopen(SUBMISSION_URL.format(ContestId=con_id, SubmissionId=sub_id)).read()
-                
                 start_pos = submission_info.find(SOURCE_CODE_BEGIN, MAGIC_START_POINT) + len(SOURCE_CODE_BEGIN)
                 end_pos = submission_info.find("</pre>", start_pos)
                 result = parse(submission_info[start_pos:end_pos]).replace('\r', '')
@@ -69,11 +68,14 @@ for submission in submissions:
                 print str(con_id) + str(prob_id) + " " + prob_name + " "
                 cnt = cnt + 1
                 file = open(new_directory + '/' + prob_id + ' [ ' + clean_name(prob_name) + ' ]' + '.' + ext, 'w')
-                file.write(result)
+                if ext == "cpp":
+                    file.write(result[result.index("#include"):-1])
+                else:
+                    file.write(result)
                 file.close()
                 break
-            except:
-                print "Exception: probably connection failure"
+            except Exception as e:
+                print "Exception: "+str(e)
     else :
         print "Failed submission"
 end_time = time.time()
